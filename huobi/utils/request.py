@@ -40,41 +40,42 @@ class AsyncHttpRequests(object):
             HTTP request exceptions or response data parse exceptions. All the exceptions will be captured and return
             Error information.
         """
-        session = cls._get_session(url)
-        if not kwargs.get("proxy"):
-            kwargs["proxy"] = config.proxy
-        try:
-            if method == "GET":
-                response = await session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
-            elif method == "POST":
-                response = await session.post(url, params=params, data=body, json=data, headers=headers,
-                                              timeout=timeout, **kwargs)
-            elif method == "PUT":
-                response = await session.put(url, params=params, data=body, json=data, headers=headers,
-                                             timeout=timeout, **kwargs)
-            elif method == "DELETE":
-                response = await session.delete(url, params=params, data=body, json=data, headers=headers,
+        # session = cls._get_session(url)
+        async with aiohttp.ClientSession() as session:
+            if not kwargs.get("proxy"):
+                kwargs["proxy"] = config.proxy
+            try:
+                if method == "GET":
+                    response = await session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
+                elif method == "POST":
+                    response = await session.post(url, params=params, data=body, json=data, headers=headers,
                                                 timeout=timeout, **kwargs)
-            else:
-                error = "http method error!"
-                return None, None, error
-        except Exception as e:
-            logger.error("method:", method, "url:", url, "headers:", headers, "params:", params, "body:", body,
-                         "data:", data, "Error:", e, caller=cls)
-            return None, None, e
-        code = response.status
-        if code not in (200, 201, 202, 203, 204, 205, 206):
-            text = await response.text()
-            logger.error("method:", method, "url:", url, "headers:", headers, "params:", params, "body:", body,
-                         "data:", data, "code:", code, "result:", text, caller=cls)
-            return code, None, text
-        try:
-            result = await response.json()
-        except:
-            result = await response.text()
-        logger.debug("method:", method, "url:", url, "headers:", headers, "params:", params, "body:", body,
-                     "data:", data, "code:", code, "result:", json.dumps(result), caller=cls)
-        return code, result, None
+                elif method == "PUT":
+                    response = await session.put(url, params=params, data=body, json=data, headers=headers,
+                                                timeout=timeout, **kwargs)
+                elif method == "DELETE":
+                    response = await session.delete(url, params=params, data=body, json=data, headers=headers,
+                                                    timeout=timeout, **kwargs)
+                else:
+                    error = "http method error!"
+                    return None, None, error
+            except Exception as e:
+                logger.error("method:", method, "url:", url, "headers:", headers, "params:", params, "body:", body,
+                            "data:", data, "Error:", e, caller=cls)
+                return None, None, e
+            code = response.status
+            if code not in (200, 201, 202, 203, 204, 205, 206):
+                text = await response.text()
+                logger.error("method:", method, "url:", url, "headers:", headers, "params:", params, "body:", body,
+                            "data:", data, "code:", code, "result:", text, caller=cls)
+                return code, None, text
+            try:
+                result = await response.json()
+            except:
+                result = await response.text()
+            logger.debug("method:", method, "url:", url, "headers:", headers, "params:", params, "body:", body,
+                        "data:", data, "code:", code, "result:", json.dumps(result), caller=cls)
+            return code, result, None
 
     @classmethod
     async def get(cls, url, params=None, body=None, data=None, headers=None, timeout=30, **kwargs):

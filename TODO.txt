@@ -10,10 +10,10 @@
 # how to use credentials
 
 # 1. possible forks - allow no callback to be passed to socket - only queue
-# 2. rename folder
-# 3. add a close method
-# 4. heartbeat with pongs?
-# 5. keep session open? provide access to the session object? no - only if we have perf problems
+-- # 2. rename folder
+-- # 3. add a close method
+-- # 4. heartbeat with pongs?
+-- # 5. keep session open? provide access to the session object? no - only if we have perf problems
 
 
 # - subaccount positions - Trade web socket, and get_positions

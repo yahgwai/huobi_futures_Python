@@ -62,7 +62,11 @@ class SingleTask:
         Args:
             func: Asynchronous callback function.
         """
-        asyncio.get_event_loop().create_task(func(*args, **kwargs))
+        asyncio.create_task(func(*args, **kwargs))
+
+    async def _wait_and_call(self, delay, func, *args, **kwargs):
+        await asyncio.sleep(delay)
+        await asyncio.create_task(func(*args, **kwargs))
 
     @classmethod
     def call_later(cls, func, delay=0, *args, **kwargs):
@@ -73,8 +77,8 @@ class SingleTask:
             delay: Delay time is seconds, default delay time is 0, you can assign a float e.g. 0.5, 2.3, 5.1 ...
         """
         if not inspect.iscoroutinefunction(func):
-            asyncio.get_event_loop().call_later(delay, func, *args)
+            asyncio.create_task(cls._wait_and_call(delay, func, args, kwargs))
         else:
             def foo(f, *args, **kwargs):
-                asyncio.get_event_loop().create_task(f(*args, **kwargs))
-            asyncio.get_event_loop().call_later(delay, foo, func, *args)
+                asyncio.create_task(f(*args, **kwargs))
+            asyncio.create_task(cls._wait_and_call(delay, foo, func, *args))

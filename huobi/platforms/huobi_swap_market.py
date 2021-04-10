@@ -81,7 +81,7 @@ class HuobiSwapMarket(Websocket):
         try:
             await self.ws.send_json(data)
         except ConnectionResetError:
-            await asyncio.get_event_loop().create_task(self._reconnect())
+            await asyncio.create_task(self._reconnect())
 
     async def connected_callback(self):
         """ After create Websocket connection successfully, we will subscribing orderbook/trade events.

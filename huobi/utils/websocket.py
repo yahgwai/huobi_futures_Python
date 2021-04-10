@@ -37,6 +37,7 @@ class Websocket:
         self._send_hb_interval = send_hb_interval
         self.ws = None  # websocket连接对象
         self.heartbeat_msg = None  # 心跳消息
+        self.session = None
 
     def initialize(self):
         """ 初始化
@@ -47,24 +48,34 @@ class Websocket:
         if self._send_hb_interval > 0:
             heartbeat.register(self._send_heartbeat_msg, self._send_hb_interval)
         # 建立websocket连接
-        asyncio.get_event_loop().create_task(self._connect())
+        asyncio.create_task(self._connect())
+
+    async def close(self):
+        self.closed = True
+        await self.session.close()
+        await self.ws.close()
 
     async def _connect(self):
         logger.info("url:", self._url, caller=self)
         METHOD_LOCKERS = {}
         proxy = config.proxy
-        session = aiohttp.ClientSession()
+        self.session = aiohttp.ClientSession()
         try:
-            self.ws = await session.ws_connect(self._url, proxy=proxy)
-        except aiohttp.client_exceptions.ClientConnectorError:
+            self.ws = await self.session.ws_connect(self._url, proxy=proxy)
+            self.closed = False
+        except aiohttp.ClientConnectionError:
             logger.error("connect to server error! url:", self._url, caller=self)
             return
-        asyncio.get_event_loop().create_task(self.connected_callback())
-        asyncio.get_event_loop().create_task(self.receive())
+        asyncio.create_task(self.connected_callback())
+        asyncio.create_task(self.receive())
 
     async def _reconnect(self):
         """ 重新建立websocket连接
         """
+        if self.closed:
+            logger.info("websocket closed, not reconnecting", caller=self)
+            return
+    
         logger.warn("reconnecting websocket right now!", caller=self)
         await self._connect()
 
@@ -83,21 +94,21 @@ class Websocket:
                     data = json.loads(msg.data)
                 except:
                     data = msg.data
-                await asyncio.get_event_loop().create_task(self.process(data))
+                await asyncio().create_task(self.process(data))
             elif msg.type == aiohttp.WSMsgType.BINARY:
-                await asyncio.get_event_loop().create_task(self.process_binary(msg.data))
+                await asyncio.create_task(self.process_binary(msg.data))
             elif msg.type == aiohttp.WSMsgType.CLOSED:
                 logger.warn("receive event CLOSED:", msg, caller=self)
-                await asyncio.get_event_loop().create_task(self._reconnect())
+                await asyncio.create_task(self._reconnect())
             elif msg.type == aiohttp.WSMsgType.CLOSE:
                 logger.warn("receive event CLOSE:", msg, caller=self)
-                await asyncio.get_event_loop().create_task(self._reconnect())
+                await asyncio.create_task(self._reconnect())
             elif msg.type == aiohttp.WSMsgType.CLOSING:
                 logger.warn("receive event CLOSING:", msg, caller=self)
-                await asyncio.get_event_loop().create_task(self._reconnect())
+                await asyncio.create_task(self._reconnect())
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 logger.error("receive event ERROR:", msg, caller=self)
-                await asyncio.get_event_loop().create_task(self._reconnect())
+                await asyncio.create_task(self._reconnect())
             else:
                 logger.warn("unhandled msg:", msg, caller=self)
 
@@ -117,11 +128,11 @@ class Websocket:
         """ 检查连接是否正常
         """
         # 检查websocket连接是否关闭，如果关闭，那么立即重连
-        if not self.ws:
+        if not self.ws or self.closed:
             logger.warn("websocket connection not connected yet!", caller=self)
             return
         if self.ws.closed:
-            await asyncio.get_event_loop().create_task(self._reconnect())
+            await asyncio.create_task(self._reconnect())
             return
 
     async def _send_heartbeat_msg(self, *args, **kwargs):
@@ -142,6 +153,6 @@ class Websocket:
                 logger.debug("send ping message:", self.heartbeat_msg, caller=self)
             except ConnectionResetError:
                 traceback.print_exc()
-                await asyncio.get_event_loop().create_task(self._reconnect())
+                await asyncio.create_task(self._reconnect())
 
 

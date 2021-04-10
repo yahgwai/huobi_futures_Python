@@ -81,7 +81,7 @@ class HuobiOptionMarket(Websocket):
         try:
             await self.ws.send_json(data)
         except ConnectionResetError:
-            await asyncio.get_event_loop().create_task(self._reconnect())
+            await asyncio.create_task(self._reconnect())
 
     async def connected_callback(self):
         """ After create Websocket connection successfully, we will subscribing orderbook/trade events.
@@ -180,7 +180,8 @@ class HuobiOptionMarket(Websocket):
         }
         kline = Kline(**info)
         self._klines.append(kline)
-        SingleTask.run(self._kline_update_callback, copy.copy(kline))
+        if self._kline_update_callback is not None:
+            SingleTask.run(self._kline_update_callback, copy.copy(kline))
 
         logger.debug("symbol:", symbol, "kline:", kline, caller=self)
 
@@ -210,7 +211,8 @@ class HuobiOptionMarket(Websocket):
         }
         orderbook = Orderbook(**info)
         self._orderbooks.append(orderbook)
-        SingleTask.run(self._orderbook_update_callback, copy.copy(orderbook))
+        if self._orderbook_update_callback is not None:
+            SingleTask.run(self._orderbook_update_callback, copy.copy(orderbook))
         logger.debug("symbol:", symbol, "orderbook:", orderbook, caller=self)
     
     async def process_trade(self, data):
@@ -233,7 +235,8 @@ class HuobiOptionMarket(Websocket):
             }
             trade = Trade(**info)
             self._trades.append(trade)
-            SingleTask.run(self._trade_update_callback, copy.copy(trade))
+            if self._trade_update_callback is not None:
+                SingleTask.run(self._trade_update_callback, copy.copy(trade))
             logger.debug("symbol:", symbol, "trade:", trade, caller=self)
         
 

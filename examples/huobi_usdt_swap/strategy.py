@@ -8,21 +8,21 @@ Email: andyjoe318@gmail.com
 """
 # 策略实现
 import time
-from alpha import const
-from alpha.utils import tools
-from alpha.utils import logger
-from alpha.config import config
-from alpha.market import Market
-from alpha.trade import Trade
-from alpha.order import Order
-from alpha.orderbook import Orderbook
-from alpha.kline import Kline
-from alpha.markettrade import Trade as MarketTrade
-from alpha.asset import Asset
-from alpha.position import Position
-from alpha.error import Error
-from alpha.tasks import LoopRunTask
-from alpha.order import ORDER_ACTION_SELL, ORDER_ACTION_BUY, ORDER_STATUS_FAILED, ORDER_STATUS_CANCELED, ORDER_STATUS_FILLED,\
+from huobi import const
+from huobi.utils import tools
+from huobi.utils import logger
+from huobi.config import config
+from huobi.market import Market
+from huobi.trade import Trade
+from huobi.order import Order
+from huobi.orderbook import Orderbook
+from huobi.kline import Kline
+from huobi.markettrade import Trade as MarketTrade
+from huobi.asset import Asset
+from huobi.position import Position
+from huobi.error import Error
+from huobi.tasks import LoopRunTask
+from huobi.order import ORDER_ACTION_SELL, ORDER_ACTION_BUY, ORDER_STATUS_FAILED, ORDER_STATUS_CANCELED, ORDER_STATUS_FILLED,\
     ORDER_TYPE_LIMIT, ORDER_TYPE_MARKET
 
 

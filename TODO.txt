@@ -1,0 +1,24 @@
+
+# 1. install via requirements.txt
+# 2. import modules from huobi
+
+
+# d. figure out and provide an example of how to close the socket
+# c. test with threading - use to_thread - examples
+# a. describe what the modules are and how we can use them
+# b. describe, or provide helper, for starting event loop - we shouldnt need to do that!
+# how to use credentials
+
+# 1. possible forks - allow no callback to be passed to socket - only queue
+# 2. rename folder
+# 3. add a close method
+# 4. heartbeat with pongs?
+# 5. keep session open? provide access to the session object? no - only if we have perf problems
+
+
+# - subaccount positions - Trade web socket, and get_positions
+# - subaccount data e.g. balance, equity, - api, get_asset_info
+# - subaccount fund transfers - option_master_sub_transfer_record and option_master_sub_transfer
+# - index value used by exchange - get_market_index, option_index
+# - public trades - Trade socket (/option-ex/market/depth, /option-ex/market/history/trade)
+# - our own filled orders - Market socket, get_history_orders, option_openorders - is profit the thing we're looking for here?

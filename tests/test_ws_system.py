@@ -4,8 +4,8 @@ from config import *
 import time
 
 sys.path.append('..')
-from alpha.platforms.huobi_usdt_swap.logger import *
-from alpha.platforms.huobi_usdt_swap.ws_system import *
+from huobi.platforms.huobi_usdt_swap.logger import *
+from huobi.platforms.huobi_usdt_swap.ws_system import *
 
 
 class TestWsSystem(unittest.TestCase):

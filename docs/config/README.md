@@ -6,7 +6,7 @@
 ## 配置使用
 所有 `config.json` 配置文件里的 `key-value` 格式数据，都可以通过如下方式使用：
 ```python
-from alpha.config import config
+from huobi.config import config
 
 config.name  # 使用配置里的name字段
 config.abc  # 使用配置里的abc字段
@@ -126,7 +126,7 @@ MARKET行情配置。
 
 ```python
 
-    from alpha.utils import mongo
+    from huobi.utils import mongo
 
     async def on_event_kline_update(self, kline: Kline):
         """ 订单薄更新
@@ -144,7 +144,7 @@ MARKET行情配置。
 
 ```python
 
-    from alpha.utils.dingding import DingTalk
+    from huobi.utils.dingding import DingTalk
 
     msg = "DingDing Alarm"
     dingding_access_token = "xxxxxx"

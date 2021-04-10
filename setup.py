@@ -4,12 +4,12 @@ from distutils.core import setup
 
 
 setup(
-    name="alphaquant",
+    name="huobiquant",
     version="1.1.5",
     packages=[
-        "alpha",
-        "alpha.utils",
-        "alpha.platforms",
+        "huobi",
+        "huobi.utils",
+        "huobi.platforms",
     ],
     description="Asynchronous driven quantitative trading framework.",
     url="https://github.com/hbdmapi/hbdm_python",
@@ -17,7 +17,7 @@ setup(
     author_email="andyjoe318@gmail.com",
     license="MIT",
     keywords=[
-        "alphaquant", "huobi future", "async", "asynchronous", "btc",
+        "huobiquant", "huobi future", "async", "asynchronous", "btc",
         "marketmaker", "huobi", "huobi swap", "strategy"
     ],
     install_requires=[

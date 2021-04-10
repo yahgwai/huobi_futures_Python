@@ -23,7 +23,7 @@ def main():
     else:
         config_file = None
 
-    from alpha.quant import quant
+    from huobi.quant import quant
     quant.initialize(config_file)
     initialize()
     quant.start()

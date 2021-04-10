@@ -3,8 +3,8 @@ import unittest
 from config import *
 
 sys.path.append('..')
-from alpha.platforms.huobi_usdt_swap.logger import *
-from alpha.platforms.huobi_usdt_swap.rest_market import *
+from huobi.platforms.huobi_usdt_swap.logger import *
+from huobi.platforms.huobi_usdt_swap.rest_market import *
 
 
 class TestRestMarket(unittest.TestCase):

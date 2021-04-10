@@ -3,8 +3,8 @@ import unittest
 from config import *
 
 sys.path.append('..')
-from alpha.platforms.huobi_usdt_swap.logger import *
-from alpha.platforms.huobi_usdt_swap.rest_trigger_order import *
+from huobi.platforms.huobi_usdt_swap.logger import *
+from huobi.platforms.huobi_usdt_swap.rest_trigger_order import *
 
 
 class TestRestTriggerOrder(unittest.TestCase):

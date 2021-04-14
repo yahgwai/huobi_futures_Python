@@ -31,10 +31,9 @@ class HuobiUsdtSwapCrossRestAPI:
         host: HTTP request host.
         access_key: Account's ACCESS KEY.
         secret_key: Account's SECRET KEY.
-        passphrase: API KEY Passphrase.
     """
 
-    def __init__(self, host, access_key, secret_key):
+    def __init__(self, access_key, secret_key, host="https://api.hbdm.com"):
         """ initialize REST API client. """
         self._host = host
         self._access_key = access_key

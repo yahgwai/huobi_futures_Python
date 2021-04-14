@@ -120,7 +120,7 @@ class HuobiUsdtSwapTrade(Websocket):
         self._subscribe_position_ok = False
         self._subscribe_asset_ok = False
 
-        self._rest_api = HuobiUsdtSwapRestAPI(self._host, self._access_key, self._secret_key)
+        self._rest_api = HuobiUsdtSwapRestAPI(self._access_key, self._secret_key, self._host)
 
         self.initialize()
 

@@ -39,7 +39,7 @@ class HuobiOptionRestAPI:
         self._access_key = access_key
         self._secret_key = secret_key
 
-    async def get_option_info(self, contract_code=None):
+    async def get_option_info(self, symbol=None, contract_code=None):
         """ Get Option Info
         
         Args:
@@ -58,6 +58,8 @@ class HuobiOptionRestAPI:
         params = {}
         if contract_code:
             params["contract_code"] = contract_code
+        if symbol:
+            params["symbol"] = symbol
         success, error = await self.request("GET", uri, params)
         return success, error
 

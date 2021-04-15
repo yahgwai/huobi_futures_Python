@@ -4,7 +4,7 @@ from distutils.core import setup
 
 
 setup(
-    name="huobiquant",
+    name="huobiquanty",
     version="1.1.5",
     packages=[
         "huobi",

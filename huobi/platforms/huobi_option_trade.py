@@ -8,6 +8,7 @@ Date:   2020/06/19
 Email:  andyjoe318@gmail.com
 """
 
+import asyncio
 import gzip
 import json
 import copy
@@ -103,6 +104,7 @@ class HuobiOptionTrade(Websocket):
         self._position_update_callback = kwargs.get("position_update_callback")
         self._asset_update_callback = kwargs.get("asset_update_callback")
         self._init_success_callback = kwargs.get("init_success_callback")
+        self._lock = asyncio.Lock()
 
         url = self._wss + "/option-notification"
         super(HuobiOptionTrade, self).__init__(url, send_hb_interval=5)
@@ -246,32 +248,35 @@ class HuobiOptionTrade(Websocket):
                 if self._init_success_callback is not None:
                     SingleTask.run(self._init_success_callback, False, e)
 
-    @async_method_locker("HuobiOptionTrade.process_binary.locker")
     async def process_binary(self, raw):
         """ 处理websocket上接收到的消息
         @param raw 原始的压缩数据
         """
-        data = json.loads(gzip.decompress(raw).decode())
-        logger.debug("data:", data, caller=self)
+        try:
+            await self._lock.acquire()
+            data = json.loads(gzip.decompress(raw).decode())
+            logger.debug("data:", data, caller=self)
 
-        op = data.get("op")
-        if op == "ping":
-            hb_msg = {"op": "pong", "ts": int(data.get("ts"))}
-            await self.ws.send_json(hb_msg)
+            op = data.get("op")
+            if op == "ping":
+                hb_msg = {"op": "pong", "ts": int(data.get("ts"))}
+                await self.ws.send_json(hb_msg)
 
-        elif op == "auth":
-            await self.auth_callback(data)
+            elif op == "auth":
+                await self.auth_callback(data)
 
-        elif op == "sub":
-            await self.sub_callback(data)
+            elif op == "sub":
+                await self.sub_callback(data)
 
-        elif op == "notify":
-            if data["topic"].startswith("orders"):
-                self._update_order(data)
-            elif data["topic"].startswith("positions"):
-                self._update_position(data)
-            elif data["topic"].startswith("accounts"):
-                self._update_asset(data)
+            elif op == "notify":
+                if data["topic"].startswith("orders"):
+                    self._update_order(data)
+                elif data["topic"].startswith("positions"):
+                    self._update_position(data)
+                elif data["topic"].startswith("accounts"):
+                    self._update_asset(data)
+        finally:
+            self._lock.release()
 
     # async def create_order(self, action, price, quantity, order_type=ORDER_TYPE_LIMIT,  client_order_id=None,  *args, **kwargs):
     #     """ Create an order.

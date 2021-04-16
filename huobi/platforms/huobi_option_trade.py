@@ -98,6 +98,7 @@ class HuobiOptionTrade(Websocket):
         self._wss = kwargs["wss"]
         self._access_key = kwargs["access_key"]
         self._secret_key = kwargs["secret_key"]
+        self._contract_code = kwargs.get("contract_code")
         self._order_update_callback = kwargs.get("order_update_callback")
         self._position_update_callback = kwargs.get("position_update_callback")
         self._asset_update_callback = kwargs.get("asset_update_callback")
@@ -106,17 +107,17 @@ class HuobiOptionTrade(Websocket):
         url = self._wss + "/option-notification"
         super(HuobiOptionTrade, self).__init__(url, send_hb_interval=5)
 
-        self._raw_symbol = self._symbol.split("-")[0]
-        self._trade_partition = self._symbol.split("-")[1]
+        # self._raw_symbol = self._symbol.split("-")[0]
+        # self._trade_partition = self._symbol.split("-")[1]
 
         self._assets = {}  # Asset detail, {"BTC": {"free": "1.1", "locked": "2.2", "total": "3.3"}, ... }.
         self._orders = {}  # Order objects, {"order_id": order, ...}.
         self._position = Position(self._platform, self._account, self._strategy, self._symbol)
 
-        self._order_channel = "orders.{symbol}".format(symbol='-'.join(self._symbol.split('-')[:2]))
-        self._position_channel = "positions.{symbol}".format(symbol='-'.join(self._symbol.split('-')[:2]))
-        self._asset_channels = ["accounts.{symbol}".format(symbol='-'.join(self._symbol.split('-')[:2])),
-                                "accounts.{symbol}".format(symbol='-'.join([self._symbol.split('-')[1], self._symbol.split('-')[1]]))]
+        self._order_channel = "orders.{symbol}-USDT".format(symbol=self._symbol)
+        self._position_channel = "positions.{symbol}-USDT".format(symbol=self._symbol)
+        self._asset_channels = ["accounts.{symbol}-USDT".format(symbol=self._symbol),
+                                "accounts.{symbol}-USDT".format(symbol=self._symbol)]
 
 
         self._subscribe_order_ok = False
@@ -447,7 +448,8 @@ class HuobiOptionTrade(Websocket):
         else:
             order_nos = []
             for order_info in success["data"]["orders"]:
-                if order_info["contract_code"] != self._symbol:
+
+                if self._contract_code is not None and order_info["contract_code"] != self._contract_code:
                     continue
                 order_nos.append(str(order_info["order_id"]))
             return order_nos, None
@@ -458,7 +460,7 @@ class HuobiOptionTrade(Websocket):
         Args:
             order_info: Order information.
         """
-        if order_info["contract_code"] != self._symbol:
+        if self._contract_code is not None and order_info["contract_code"] != self._contract_code:
             return
         order_no = str(order_info["order_id"])
         status = order_info["status"]
@@ -546,7 +548,7 @@ class HuobiOptionTrade(Websocket):
             None.
         """
         for position_info in data["data"]:
-            if position_info["contract_code"] != self._symbol:
+            if self._contract_code is not None and position_info["contract_code"] != self._contract_code:
                 continue
             if position_info["direction"] == "buy":
                 self._position.long_quantity = int(position_info["volume"])

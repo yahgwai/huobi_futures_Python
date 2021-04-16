@@ -48,7 +48,7 @@ class HuobiOptionTrade(Websocket):
     Attributes:
         account: Account name for this trade exchange.
         strategy: What's name would you want to created for you strategy.
-        symbol: Symbol name for your trade.
+        symbol: Symbol name for your trade. eg BTC-USDT
         host: HTTP request host. default `https://api.hbdm.com"`.
         wss: Websocket address. default `wss://api.hbdm.com`.
         access_key: Account's ACCESS KEY.
@@ -184,7 +184,8 @@ class HuobiOptionTrade(Websocket):
         if data["err-code"] != 0:
             e = Error("Websocket connection authorized failed: {}".format(data))
             logger.error(e, caller=self)
-            SingleTask.run(self._init_success_callback, False, e)
+            if self._init_success_callback is not None:
+                SingleTask.run(self._init_success_callback, False, e)
             return
 
         # subscribe order
@@ -216,7 +217,8 @@ class HuobiOptionTrade(Websocket):
         if data["err-code"] != 0:
             e = Error("subscribe {} failed!".format(data["topic"]))
             logger.error(e, caller=self)
-            SingleTask.run(self._init_success_callback, False, e)
+            if self._init_success_callback is not None:
+                SingleTask.run(self._init_success_callback, False, e)
             return
         if data["topic"] == self._order_channel:
             self._subscribe_order_ok = True
@@ -226,19 +228,22 @@ class HuobiOptionTrade(Websocket):
             self._subscribe_asset_ok = True
         if self._subscribe_order_ok and self._subscribe_position_ok \
             and self._subscribe_asset_ok:
-            success, error = await self._rest_api.get_open_orders(self._symbol)
+            success, error = await self._rest_api.get_open_orders(symbol=self._symbol)
             if error:
                 e = Error("get open orders failed!")
-                SingleTask.run(self._init_success_callback, False, e)
+                if self._init_success_callback is not None:
+                    SingleTask.run(self._init_success_callback, False, e)
             elif "data" in success and "orders" in success["data"]:
                 for order_info in success["data"]["orders"]:
                     order_info["ts"] = order_info["created_at"]
                     self._update_order(order_info)
-                SingleTask.run(self._init_success_callback, True, None)
+                if self._init_success_callback is not None:
+                    SingleTask.run(self._init_success_callback, True, None)
             else:
                 logger.warn("get open orders:", success, caller=self)
                 e = Error("Get Open Orders Unknown error")
-                SingleTask.run(self._init_success_callback, False, e)
+                if self._init_success_callback is not None:
+                    SingleTask.run(self._init_success_callback, False, e)
 
     @async_method_locker("HuobiOptionTrade.process_binary.locker")
     async def process_binary(self, raw):
@@ -267,164 +272,164 @@ class HuobiOptionTrade(Websocket):
             elif data["topic"].startswith("accounts"):
                 self._update_asset(data)
 
-    async def create_order(self, action, price, quantity, order_type=ORDER_TYPE_LIMIT,  client_order_id=None,  *args, **kwargs):
-        """ Create an order.
+    # async def create_order(self, action, price, quantity, order_type=ORDER_TYPE_LIMIT,  client_order_id=None,  *args, **kwargs):
+    #     """ Create an order.
 
-        Args:
-            action: Trade direction, BUY or SELL.
-            price: Price of each contract.
-            quantity: The buying or selling quantity.
-            order_type: Order type, LIMIT or MARKET.
-            kwargs:
-                lever_rate: Leverage rate, 10 or 20.
+    #     Args:
+    #         action: Trade direction, BUY or SELL.
+    #         price: Price of each contract.
+    #         quantity: The buying or selling quantity.
+    #         order_type: Order type, LIMIT or MARKET.
+    #         kwargs:
+    #             lever_rate: Leverage rate, 10 or 20.
 
-        Returns:
-            order_no: Order ID if created successfully, otherwise it's None.
-            error: Error information, otherwise it's None.
-        """
-        if int(quantity) > 0:
-            if action == ORDER_ACTION_BUY:
-                direction = "buy"
-                offset = "open"
-            elif action == ORDER_ACTION_SELL:
-                direction = "sell"
-                offset = "close"
-            else:
-                return None, "action error"
-        else:
-            if action == ORDER_ACTION_BUY:
-                direction = "buy"
-                offset = "close"
-            elif action == ORDER_ACTION_SELL:
-                direction = "sell"
-                offset = "open"
-            else:
-                return None, "action error"
+    #     Returns:
+    #         order_no: Order ID if created successfully, otherwise it's None.
+    #         error: Error information, otherwise it's None.
+    #     """
+    #     if int(quantity) > 0:
+    #         if action == ORDER_ACTION_BUY:
+    #             direction = "buy"
+    #             offset = "open"
+    #         elif action == ORDER_ACTION_SELL:
+    #             direction = "sell"
+    #             offset = "close"
+    #         else:
+    #             return None, "action error"
+    #     else:
+    #         if action == ORDER_ACTION_BUY:
+    #             direction = "buy"
+    #             offset = "close"
+    #         elif action == ORDER_ACTION_SELL:
+    #             direction = "sell"
+    #             offset = "open"
+    #         else:
+    #             return None, "action error"
 
-        if order_type == ORDER_TYPE_LIMIT:
-            order_price_type = "limit"
-        elif order_type == ORDER_TYPE_MARKET:
-            order_price_type = "optimal_20"
-        elif order_type == ORDER_TYPE_MAKER:
-            order_price_type = "post_only"
-        elif order_type == ORDER_TYPE_FOK:
-            order_price_type = "fok"
-        elif order_type == ORDER_TYPE_IOC:
-            order_price_type = "ioc"
+    #     if order_type == ORDER_TYPE_LIMIT:
+    #         order_price_type = "limit"
+    #     elif order_type == ORDER_TYPE_MARKET:
+    #         order_price_type = "optimal_20"
+    #     elif order_type == ORDER_TYPE_MAKER:
+    #         order_price_type = "post_only"
+    #     elif order_type == ORDER_TYPE_FOK:
+    #         order_price_type = "fok"
+    #     elif order_type == ORDER_TYPE_IOC:
+    #         order_price_type = "ioc"
 
-        else:
-            return None, "order type error"
+    #     else:
+    #         return None, "order type error"
 
-        quantity = abs(int(quantity))
-        result, error = await self._rest_api.create_order(self._symbol,
-                                                          price, quantity, direction, offset,
-                                                          order_price_type, client_order_id)
-        if error:
-            return None, error
-        return str(result["data"]["order_id"]), None
+    #     quantity = abs(int(quantity))
+    #     result, error = await self._rest_api.create_order(self._symbol,
+    #                                                       price, quantity, direction, offset,
+    #                                                       order_price_type, client_order_id)
+    #     if error:
+    #         return None, error
+    #     return str(result["data"]["order_id"]), None
     
-    async def create_orders(self, orders, *args, **kwargs):
-        """ batch create orders
+    # async def create_orders(self, orders, *args, **kwargs):
+    #     """ batch create orders
         
-        Args:
-            orders_data: [] 
-            list item:
-                action: Trade direction, BUY or SELL.
-                price: Price of each contract.
-                quantity: The buying or selling quantity.
-                order_type: Order type, LIMIT or MARKET.
-            kwargs:
+    #     Args:
+    #         orders_data: [] 
+    #         list item:
+    #             action: Trade direction, BUY or SELL.
+    #             price: Price of each contract.
+    #             quantity: The buying or selling quantity.
+    #             order_type: Order type, LIMIT or MARKET.
+    #         kwargs:
                 
-        Returns:
-            success: order info  if created successfully.
-            error: erros information.
-        """
-        orders_data = []
-        for order in orders:
-            if int(order["quantity"]) > 0:
-                if order["action"] == ORDER_ACTION_BUY:
-                    direction = "buy"
-                    offset = "open"
-                elif order["action"] == ORDER_ACTION_SELL:
-                    direction = "sell"
-                    offset = "close"
-                else:
-                    return None, "action error"
-            else:
-                if order["action"] == ORDER_ACTION_BUY:
-                    direction = "buy"
-                    offset = "close"
-                elif order["action"] == ORDER_ACTION_SELL:
-                    direction = "sell"
-                    offset = "open"
-                else:
-                    return None, "action error"
+    #     Returns:
+    #         success: order info  if created successfully.
+    #         error: erros information.
+    #     """
+    #     orders_data = []
+    #     for order in orders:
+    #         if int(order["quantity"]) > 0:
+    #             if order["action"] == ORDER_ACTION_BUY:
+    #                 direction = "buy"
+    #                 offset = "open"
+    #             elif order["action"] == ORDER_ACTION_SELL:
+    #                 direction = "sell"
+    #                 offset = "close"
+    #             else:
+    #                 return None, "action error"
+    #         else:
+    #             if order["action"] == ORDER_ACTION_BUY:
+    #                 direction = "buy"
+    #                 offset = "close"
+    #             elif order["action"] == ORDER_ACTION_SELL:
+    #                 direction = "sell"
+    #                 offset = "open"
+    #             else:
+    #                 return None, "action error"
 
-            if order["order_type"] == ORDER_TYPE_LIMIT:
-                order_price_type = "limit"
-            elif order["order_type"] == ORDER_TYPE_MARKET:
-                order_price_type = "optimal_20"
-            elif order["order_type"] == ORDER_TYPE_MAKER:
-                order_price_type = "post_only"
-            elif  order["order_type"] == ORDER_TYPE_FOK:
-                order_price_type = "fok"
-            elif  order["order_type"] == ORDER_TYPE_IOC:
-               order_price_type = "ioc"
-            else:
-                return None, "order type error"
+    #         if order["order_type"] == ORDER_TYPE_LIMIT:
+    #             order_price_type = "limit"
+    #         elif order["order_type"] == ORDER_TYPE_MARKET:
+    #             order_price_type = "optimal_20"
+    #         elif order["order_type"] == ORDER_TYPE_MAKER:
+    #             order_price_type = "post_only"
+    #         elif  order["order_type"] == ORDER_TYPE_FOK:
+    #             order_price_type = "fok"
+    #         elif  order["order_type"] == ORDER_TYPE_IOC:
+    #            order_price_type = "ioc"
+    #         else:
+    #             return None, "order type error"
 
-            quantity = abs(int(order["quantity"]))
+    #         quantity = abs(int(order["quantity"]))
 
-            client_order_id = order.get("client_order_id", "")
+    #         client_order_id = order.get("client_order_id", "")
 
-            orders_data.append({"contract_code": self._symbol, \
-                    "client_order_id": client_order_id, "price": order["price"], "volume": quantity, "direction": direction, "offset": offset, \
-                    "order_price_type":  order_price_type})
+    #         orders_data.append({"contract_code": self._symbol, \
+    #                 "client_order_id": client_order_id, "price": order["price"], "volume": quantity, "direction": direction, "offset": offset, \
+    #                 "order_price_type":  order_price_type})
 
-        result, error = await self._rest_api.create_orders({"orders_data": orders_data})
-        if error:
-            return None, error
-        order_nos = [ order["order_id"] for order in result.get("data").get("success")]
-        return order_nos, result.get("data").get("errors")
+    #     result, error = await self._rest_api.create_orders({"orders_data": orders_data})
+    #     if error:
+    #         return None, error
+    #     order_nos = [ order["order_id"] for order in result.get("data").get("success")]
+    #     return order_nos, result.get("data").get("errors")
         
-    async def revoke_order(self, *order_nos):
-        """ Revoke (an) order(s).
+    # async def revoke_order(self, *order_nos):
+    #     """ Revoke (an) order(s).
 
-        Args:
-            order_nos: Order id list, you can set this param to 0 or multiple items. If you set 0 param, you can cancel
-                all orders for this symbol(initialized in Trade object). If you set 1 param, you can cancel an order.
-                If you set multiple param, you can cancel multiple orders. Do not set param length more than 100.
+    #     Args:
+    #         order_nos: Order id list, you can set this param to 0 or multiple items. If you set 0 param, you can cancel
+    #             all orders for this symbol(initialized in Trade object). If you set 1 param, you can cancel an order.
+    #             If you set multiple param, you can cancel multiple orders. Do not set param length more than 100.
 
-        Returns:
-            Success or error, see bellow.
-        """
-        # If len(order_nos) == 0, you will cancel all orders for this symbol(initialized in Trade object).
-        if len(order_nos) == 0:
-            success, error = await self._rest_api.revoke_order_all(self._raw_symbol, self._trade_partition, "", self._symbol)
-            if error:
-                return False, error
-            if success.get("errors"):
-                return False, success["errors"]
-            return True, None
+    #     Returns:
+    #         Success or error, see bellow.
+    #     """
+    #     # If len(order_nos) == 0, you will cancel all orders for this symbol(initialized in Trade object).
+    #     if len(order_nos) == 0:
+    #         success, error = await self._rest_api.revoke_order_all(self._raw_symbol, self._trade_partition, "", self._symbol)
+    #         if error:
+    #             return False, error
+    #         if success.get("errors"):
+    #             return False, success["errors"]
+    #         return True, None
 
-        # If len(order_nos) == 1, you will cancel an order.
-        if len(order_nos) == 1:
-            success, error = await self._rest_api.revoke_order(self._trade_partition, order_nos[0])
-            if error:
-                return order_nos[0], error
-            if success.get("errors"):
-                return False, success["errors"]
-            else:
-                return order_nos[0], None
+    #     # If len(order_nos) == 1, you will cancel an order.
+    #     if len(order_nos) == 1:
+    #         success, error = await self._rest_api.revoke_order(self._trade_partition, order_nos[0])
+    #         if error:
+    #             return order_nos[0], error
+    #         if success.get("errors"):
+    #             return False, success["errors"]
+    #         else:
+    #             return order_nos[0], None
 
-        # If len(order_nos) > 1, you will cancel multiple orders.
-        if len(order_nos) > 1:
-            success, error = await self._rest_api.revoke_orders(self._trade_partition, order_nos)
-            if error:
-                return order_nos[0], error
-            if success.get("errors"):
-                return False, success["errors"]
-            return success, error
+    #     # If len(order_nos) > 1, you will cancel multiple orders.
+    #     if len(order_nos) > 1:
+    #         success, error = await self._rest_api.revoke_orders(self._trade_partition, order_nos)
+    #         if error:
+    #             return order_nos[0], error
+    #         if success.get("errors"):
+    #             return False, success["errors"]
+    #         return success, error
 
     async def get_open_order_nos(self):
         """ Get open order id list.
@@ -436,7 +441,7 @@ class HuobiOptionTrade(Websocket):
             order_nos: Open order id list, otherwise it's None.
             error: Error information, otherwise it's None.
         """
-        success, error = await self._rest_api.get_open_orders("","",self._symbol)
+        success, error = await self._rest_api.get_open_orders(symbol=self._symbol)
         if error:
             return None, error
         else:
@@ -521,7 +526,8 @@ class HuobiOptionTrade(Websocket):
         order.ctime = order_info["created_at"]
         order.utime = order_info["ts"]
 
-        SingleTask.run(self._order_update_callback, copy.copy(order))
+        if self._order_update_callback is not None:
+            SingleTask.run(self._order_update_callback, copy.copy(order))
 
         # Delete order that already completed.
         if order.status in [ORDER_STATUS_FAILED, ORDER_STATUS_CANCELED, ORDER_STATUS_FILLED]:
@@ -550,7 +556,8 @@ class HuobiOptionTrade(Websocket):
                 self._position.short_avg_price = position_info["cost_open"]
             # self._position.liquid_price = None
             self._position.utime = data["ts"]
-            SingleTask.run(self._position_update_callback, copy.copy(self._position))
+            if self._position_update_callback is not None:
+                SingleTask.run(self._position_update_callback, copy.copy(self._position))
     
     def _update_asset(self, data):
         """ Asset update.
@@ -604,11 +611,13 @@ class HuobiOptionTrade(Websocket):
             }
             asset = Asset(**info)
             self._assets = asset
-            SingleTask.run(self._asset_update_callback, copy.copy(self._assets))
+            if self._asset_update_callback is not None:
+                SingleTask.run(self._asset_update_callback, copy.copy(self._assets))
         else:
             for symbol in assets:
                 self._assets.assets.update({
                     symbol: assets[symbol]
                     })
             self._assets.timestamp = tools.get_cur_timestamp_ms()
-            SingleTask.run(self._asset_update_callback, copy.copy(self._assets))
+            if self._asset_update_callback is not None:
+                SingleTask.run(self._asset_update_callback, copy.copy(self._assets))

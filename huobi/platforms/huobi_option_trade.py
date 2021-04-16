@@ -117,7 +117,7 @@ class HuobiOptionTrade(Websocket):
         self._order_channel = "orders.{symbol}-USDT".format(symbol=self._symbol)
         self._position_channel = "positions.{symbol}-USDT".format(symbol=self._symbol)
         self._asset_channels = ["accounts.{symbol}-USDT".format(symbol=self._symbol),
-                                "accounts.{symbol}-{symbol}".format(symbol=self._symbol)]
+                                "accounts.USDT-USDT".format(symbol=self._symbol)]
 
 
         self._subscribe_order_ok = False
